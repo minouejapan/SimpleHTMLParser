@@ -2,7 +2,7 @@
 
 ### 説明
 Delphi/Lazarus用のシンプルなHTMLパーサーです。<br>
-HTMLパーサーのコアとしてFDELPHIサンプル蔵アーカイブ(https://delfusa.main.jp/delfusafloor/archive/www.nifty.ne.jp_forum_fdelphi/samples/00953.html)のHTML Parserユニット(一部修正したもの)を使用します。<br>
+HTMLパーサーのコアとしてFDELPHIサンプル蔵アーカイブ(https://delfusa.main.jp/delfusafloor/archive/www.nifty.ne.jp_forum_fdelphi/samples/00953.html)のHTML Parserユニット(一部修正したもの)を使用します。このユニットの作者はTEditorの開発者でもある本田勝彦氏です。<br>
 
 ```Delphi
 
