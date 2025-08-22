@@ -1,0 +1,52 @@
+object Form1: TForm1
+  Left = 297
+  Height = 513
+  Top = 190
+  Width = 544
+  Caption = 'Form1'
+  ClientHeight = 513
+  ClientWidth = 544
+  object Button1: TButton
+    Left = 232
+    Height = 25
+    Top = 472
+    Width = 75
+    Caption = '&Download'
+    TabOrder = 0
+    OnClick = Button1Click
+  end
+  object Memo1: TMemo
+    Left = 12
+    Height = 416
+    Top = 44
+    Width = 521
+    Font.CharSet = SHIFTJIS_CHARSET
+    Font.Height = -13
+    Font.Name = '游ゴシック'
+    Font.Pitch = fpVariable
+    Font.Quality = fqDraft
+    Lines.Strings = (
+      'URLに小説家になろう作品トップページのURLを入力してDownloadボタンを押すとその作品をダウンロードします。'
+      '尚、サンプルなので章タイトル、前書き、後書きは取得していません。短編も取得出来ません。'
+      'また、HTMLパーサー自体が簡易的なものなので、ルビや挿絵情報を取得することも出来ません。'
+    )
+    ParentFont = False
+    ScrollBars = ssVertical
+    TabOrder = 1
+  end
+  object URL: TEdit
+    Left = 53
+    Height = 23
+    Top = 10
+    Width = 479
+    TabOrder = 2
+  end
+  object Label1: TLabel
+    Left = 14
+    Height = 15
+    Top = 13
+    Width = 24
+    Caption = '&URL:'
+    FocusControl = URL
+  end
+end
