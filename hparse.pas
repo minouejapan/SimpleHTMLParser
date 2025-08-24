@@ -4,6 +4,7 @@
   Original Copyright by 本田勝彦
   Modified by INOUE, masahiro
 
+  2025/08/24 タグ終端"/>"の処理を追加した
   2025/08/22 Lazarusでも使用出来るように小修整
 *)
 unit HParse;
@@ -133,13 +134,13 @@ begin
                     Inc(P);
                   end;
                   if P^ = '>' then Inc(P);
-                end
-                else
+                end else
                   Result := '<';
               end;
             '/':
               begin
                 Result := toEndTag;
+                //FInTag := True;
                 while not (P^ in [#0, '>']) do Inc(P);
                 if P^ = '>' then Inc(P);
               end;
@@ -155,45 +156,54 @@ begin
                 FInTag := True;                  // <hの場合1～6が分離されないよう'1'..'6'を追加
                 while P^ in ['A'..'Z', 'a'..'z', '1'..'6'] do Inc(P);
               end;
-          else
-            Result := '<';
+            else
+              Result := '<';
           end;
         end;
-      #33..#59, #61..#255:
+      '/':  // xzxx />の処理
+        begin
+          Result := toEndTag;
+          while not (P^ in [#0, '>']) do Inc(P);
+          if P^ = '>' then Inc(P);
+        end;
+      #33..#46, #48..#59, #61..#255:
         begin
           Result := toContext;
           while not (P^ in [#0, '<']) do Inc(P);
         end;
-    else
-      Result := P^;
+      else
+        Result := P^;
       if Result <> toEof then Inc(P);
-    end
-  else
-  begin
-    case P^ of
-      'A'..'Z', 'a'..'z':
-        begin
-          Inc(P);
-          Result := toOption;
-          while P^ in ['A'..'Z', 'a'..'z'] do Inc(P);
-        end;
-      '=':
-        begin
-          Inc(P);
-          Result := toParam;
-          if P^ = '"' then
+    end else begin
+      case P^ of
+        '/':  // タグ終端 />の処理
+          begin
+            Result := toEndTag;
+            while not (P^ in [#0, '>']) do Inc(P);
+            if P^ = '>' then Inc(P);
+          end;
+        'A'..'Z', 'a'..'z':
           begin
             Inc(P);
-            while not (P^ in [#0, '"']) do Inc(P);
-            if P^ = '"' then Inc(P);
-          end
-          else
-            while P^ in [#33..#59, #61, #63..#126] do Inc(P);
-        end;
-    else
-      Result := P^;
-      if Result <> toEof then Inc(P);
-    end;
+            Result := toOption;
+            while P^ in ['A'..'Z', 'a'..'z'] do Inc(P);
+          end;
+        '=':
+          begin
+            Inc(P);
+            Result := toParam;
+            if P^ = '"' then
+            begin
+              Inc(P);
+              while not (P^ in [#0, '"']) do Inc(P);
+              if P^ = '"' then Inc(P);
+            end else
+              while P^ in [#33..#59, #61, #63..#126] do Inc(P);
+          end;
+        else
+          Result := P^;
+        if Result <> toEof then Inc(P);
+      end;
     if Result in ['<', '>'] then FInTag := False;
   end;
   FSourcePtr := P;

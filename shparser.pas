@@ -2,6 +2,10 @@
   HParserを使用した簡易HTMLパーサー(Delphi/Lazarus共用)
   TRegExpr:https://github.com/andgineer/TRegExpr
 
+  ver1.1 2025/08/23
+    4 HTMLエンコードされた文字のデコード処理を追加した
+                    GetText処理の前後に呼呼び出せるコールバック関数を追加した
+                    ファイル名フィルターを追加した
   ver1.0 2025/08/22 初版
 *)
 unit SHParser;
@@ -13,7 +17,11 @@ unit SHParser;
 interface
 
 uses
-  Classes, SysUtils, HParse, RegExpr;
+  Classes, SysUtils, HParse, RegExpr
+{$IFDEF FPC}
+  ,LazUTF8
+{$ENDIF}
+  ;
 
 type
   TNodeInfo = record
@@ -22,6 +30,7 @@ type
     Lebel: integer;
   end;
   TNodeArray = array of TNodeInfo;
+  TOnGetText = function(HTMLSrc: string): string;
 
   TSHParser = class(TObject)
   protected
@@ -32,18 +41,93 @@ type
     procedure InitNode;
     function GetNodeCount: integer;
   public
+    OnBeforeGetText: TOnGetText;
+    OnAfterGetText: TOnGetText;
     constructor Create(const HTML: String);
     destructor Destroy; override;
     function GetNodeText(Tag, Attrib, AName: string; AsText: boolean = True): string; overload;
     function GetNodeText(Tag: string; AsText: boolean = True): string; overload;
     function GetRegExText(PatternL, PatternR: string; AsText: boolean = True): string;
-    function GetText(Src: string): string;
+    function GetText(HTMLSrc: string): string;
+    function PathFilter(PathName: string; PathLength: integer = 24): string;
     property Node: TNodeArray read FNode;
     property NodeCount: integer read GetNodeCount;
   end;
 
 
 implementation
+
+// HTML特殊文字の処理
+// 1)エスケープ文字列 → 実際の文字
+// 2)&#x????; → 通常の文字
+function Restore2RealChar(Base: string): string;
+var
+  tmp, cd, rcd: string;
+  w, mp, ml: integer;
+  ch: Char;
+  wch: WideChar;
+  r: TRegExpr;
+begin
+  // エスケープされた文字
+  tmp := UTF8StringReplace(Base, '&lt;',      '<',  [rfReplaceAll]);
+  tmp := UTF8StringReplace(tmp,  '&gt;',      '>',  [rfReplaceAll]);
+  tmp := UTF8StringReplace(tmp,  '&quot;',    '"',  [rfReplaceAll]);
+  tmp := UTF8StringReplace(tmp,  '&nbsp;',    ' ',  [rfReplaceAll]);
+  tmp := UTF8StringReplace(tmp,  '&yen;',     '\',  [rfReplaceAll]);
+  tmp := UTF8StringReplace(tmp,  '&brvbar;',  '|',  [rfReplaceAll]);
+  tmp := UTF8StringReplace(tmp,  '&copy;',    '©',  [rfReplaceAll]);
+  tmp := UTF8StringReplace(tmp,  '&amp;',     '&',  [rfReplaceAll]);
+  // &#????;にエンコードされた文字をデコードする(2023/3/19)
+  // 正規表現による処理に変更した(2024/3/9)
+  r := TRegExpr.Create;
+  try
+    r.Expression  := '&#.*?;';
+    r.InputString := tmp;
+    if r.Exec then
+    begin
+      repeat
+        cd := r.Match[0];
+        mp := r.MatchPos[0];
+        ml := r.MatchLen[0];
+        UTF8Delete(tmp, mp, ml);
+        UTF8Delete(cd, 1, 2);           // &#を削除する
+        UTF8Delete(cd, UTF8Length(cd), 1);  // 最後の;を削除する
+        if cd[1] = 'x' then         // 先頭が16進数を表すxであればDelphiの16進数接頭文字$に変更する
+          cd[1] := '$';
+        try
+          w := StrToInt(cd);
+          ch := Char(w);
+        except
+          ch := '?';
+        end;
+        UTF8Insert(ch, tmp, mp);
+        r.InputString := tmp;
+      until not r.Exec;
+    end;
+    // unicodeエスケープ文字(\uxxxx)
+    r.Expression  := '\\u[0-9A-Fa-f]{4}';
+    r.InputString := tmp;
+    if r.Exec then
+    begin
+      repeat
+        cd := r.Match[0];
+        rcd := '\' + cd;
+        UTF8Delete(cd, 1, 2);   // \uを削除する
+        UTF8Insert('$', cd, 1); // 先頭に16進数接頭文字$を追加する
+        try
+          w := StrToInt(cd);
+          wch := Char(w);
+        except
+          wch := '？';
+        end;
+        tmp := ReplaceRegExpr(rcd, tmp, wch);
+      until not r.ExecNext;
+    end;
+  finally
+    r.Free;
+  end;
+  Result := tmp;
+end;
 
 constructor TSHParser.Create(const HTML: string);
 var
@@ -72,6 +156,9 @@ procedure TSHParser.InitNode;
 var
   d: integer;
   cf: boolean;
+  i, j: integer;
+  sl: TStringList;
+  s: string;
 begin
   d := 0;
   while FParser.Token <> toEof do
@@ -91,6 +178,17 @@ begin
     if cf then Inc(d);
     FParser.NextToken;
   end;
+
+  sl := TStringList.Create;
+  for i := 0 to FCount - 1 do
+  begin
+    s := '';
+    for j := 0 to FNode[i].Lebel do
+      s := s + '  ';
+    sl.Add(s + FNode[i].Value);
+  end;
+  sl.SaveToFile('c:\temp\debugnode.txt', TEncoding.UTF8);
+  sl.Free;
 
 end;
 
@@ -139,13 +237,17 @@ begin
           // それらすべてを再連結して返す
           while FNode[i].Lebel > lv do
           begin
+            if (Length(s) > 0) and ((s[Length(s)] = '"') and (FNode[i].Value <> '>')) then
+              s := s + ' ';
             s := s + FNode[i].Value;
+            if Pos('<', FNode[i].Value) = 1 then
+              s := s + ' ';
             Inc(i);
             if i = FCount then Break;
           end;
           // Trueであればテキストだけを返す
           if AsText then
-            s := getText(s);
+            s := GetText(s);
           Result := s;
           Break;
         end else
@@ -180,6 +282,8 @@ begin
         while FNode[i].Lebel > lv do
         begin
           s := s + FNode[i].Value;
+          if FNode[i].Token = toTag then
+            s := s + ' ';
           Inc(i);
           if i = FCount then Break;
         end;
@@ -194,7 +298,7 @@ begin
   end;
 end;
 
-// 正規表現を用いてetNodeTextでは抽出出来ないテキスト用
+// GetNodeTextでは抽出出来ない場合用
 // 正規表現パターンPatternL/PatternRで囲まれたコンテンツを返す
 // AsTextを省略もしくはTrueを指定した場合はコンテンツ内のテキストだけを
 // Falseを指定した場合はタグも含めたHTMLソースを返す
@@ -223,12 +327,23 @@ begin
   end;
 end;
 
-function TSHParser.GetText(Src: string): string;
+// 取得したコンテンツからテキストだけを抽出する
+function TSHParser.GetText(HTMLSrc: string): string;
 var
   s: string;
 begin
-  s := ReplaceRegExpr('<br.*?>', Src, #13#10);
-  s := ReplaceRegExpr('<.*?>', s, '');
+  s := HTMLSrc;
+  if Assigned(OnBeforeGetText) then // 前処理
+    s := OnBeforeGetText(s);
+
+  s := Restore2Realchar(s);                       // エスケープされた文字を元に戻す
+  s := ReplaceRegExpr('<br.*?>', s, #13#10);      // <br />を改行コードに置換
+  s := ReplaceRegExpr('<.*?>', s, '');            // その他のHTMLタグを除去
+  s := StringReplace(s, ' ', '', [rfReplaceAll]); // 半角スペースを除去
+
+  if Assigned(OnAfterGetText) then  // 後処理
+    s := OnAfterGetText(s);
+
   Result := s;
 end;
 
@@ -237,6 +352,34 @@ begin
   Result := Length(FNode);
 end;
 
+// タイトル名にファイル名として使用出来ない文字を'-'に置換する
+// Lazarus(FPC)とDelphiで文字コード変換方法が異なるためコンパイル環境で
+// 変換処理を切り替える
+function TSHParser.PathFilter(PathName: string; PathLength: integer): string;
+var
+  path, tmp: string;
+  wstr: WideString;
+begin
+  tmp := Restore2Realchar(PathName);
+  // ファイル名を一旦ShiftJISに変換して再度Unicode化することでShiftJISで使用
+  // 出来ない文字を除去する
+{$IFDEF FPC}
+  wstr := UTF8ToUTF16(tmp);
+  path := UTF16ToUTF8(wstr);      // これでUTF-8依存文字は??に置き換わる
+{$ELSE}
+  wstr := WideString(tmp);
+	path := string(wstr);
+{$ENDIF}
+  // ファイル名として使用できない文字を'-'に置換する
+  path := ReplaceRegExpr('[\\/:;\*\?\+,."<>|\.\t ]', path, '-');
+
+{$IFDEF FPC}
+  path := UTF8Copy(path, 1, Pathlength);
+{$ELSE}
+  path := Copy(path, 1, Pathlength);
+{$ENDIF}
+  Result := path;
+end;
 
 end.
 
