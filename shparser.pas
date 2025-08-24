@@ -157,8 +157,6 @@ var
   d: integer;
   cf: boolean;
   i, j: integer;
-  sl: TStringList;
-  s: string;
 begin
   d := 0;
   while FParser.Token <> toEof do
@@ -178,18 +176,6 @@ begin
     if cf then Inc(d);
     FParser.NextToken;
   end;
-
-  sl := TStringList.Create;
-  for i := 0 to FCount - 1 do
-  begin
-    s := '';
-    for j := 0 to FNode[i].Lebel do
-      s := s + '  ';
-    sl.Add(s + FNode[i].Value);
-  end;
-  sl.SaveToFile('c:\temp\debugnode.txt', TEncoding.UTF8);
-  sl.Free;
-
 end;
 
 // Tag Attrib="AName"を検索してその中に含まれるコンテンツを返す
@@ -336,10 +322,10 @@ begin
   if Assigned(OnBeforeGetText) then // 前処理
     s := OnBeforeGetText(s);
 
-  s := Restore2Realchar(s);                       // エスケープされた文字を元に戻す
   s := ReplaceRegExpr('<br.*?>', s, #13#10);      // <br />を改行コードに置換
   s := ReplaceRegExpr('<.*?>', s, '');            // その他のHTMLタグを除去
   s := StringReplace(s, ' ', '', [rfReplaceAll]); // 半角スペースを除去
+  s := Restore2Realchar(s);                       // エスケープされた文字を元に戻す
 
   if Assigned(OnAfterGetText) then  // 後処理
     s := OnAfterGetText(s);
