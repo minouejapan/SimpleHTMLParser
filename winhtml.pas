@@ -12,13 +12,13 @@ uses
 const
   UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
 
-function GetHTML(const AURL: string): string;
-function SetCookie(const AURL, CookieName, CookieData: string): Boolean;
+function GetHTML(const AURL: string; const CookieName: string = ''; const CookieData: string = ''): string;
+
 
 implementation
 
 // WinINetを用いたHTMLファイルのダウンロード
-function GetHTML(const AURL: string): string;
+function GetHTML(const AURL: string; const CookieName: string = ''; const CookieData: string = ''): string;
 var
   hSession    : HINTERNET;
   hService    : HINTERNET;
@@ -29,6 +29,12 @@ var
   TBuff       : TStringList;
 begin
   Result   := '';
+  if (CookieName <> '') and (CookieData <> '') then
+{$IFDEF FPC}
+    InternetSetCookie(PAnsiChar(AURL), PAnsiChar(CookieName), PAnsiChar(CookieData));
+{$ELSE}
+    InternetSetCookieW(PWideChar(AURL), PWideChar(CookieName), PWideChar(CookieData));
+{$ENDIF}
   hSession := InternetOpen(PChar(UA), INTERNET_OPEN_TYPE_PRECONFIG, nil, nil, 0);
   if Assigned(hSession) then
   begin
@@ -69,11 +75,6 @@ begin
     end;
     InternetCloseHandle(hService);
   end;
-end;
-
-function SetCookie(const AURL, CookieName, CookieData: string):Boolean;
-begin
-  Result := InternetSetCookieW(PWideChar(AURL), PWideChar(CookieName), PWideChar(CookieData));
 end;
 
 end.

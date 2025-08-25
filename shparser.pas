@@ -2,10 +2,9 @@
   HParserを使用した簡易HTMLパーサー(Delphi/Lazarus共用)
   TRegExpr:https://github.com/andgineer/TRegExpr
 
-  ver1.1 2025/08/23
-    4 HTMLエンコードされた文字のデコード処理を追加した
-                    GetText処理の前後に呼呼び出せるコールバック関数を追加した
-                    ファイル名フィルターを追加した
+  ver1.2 2025/08/25 GetNodeTextでの各ノード値からHTMLソースを再構築する際の半角スペースの処理を修正した
+  ver1.1 2025/08/23 HTMLエンコードされた文字のデコード処理を追加した
+                    GetText処理の前後に呼呼び出せるコールバック関数を追加したファイル名フィルターを追加した
   ver1.0 2025/08/22 初版
 *)
 unit SHParser;
@@ -226,7 +225,7 @@ begin
             if (Length(s) > 0) and ((s[Length(s)] = '"') and (FNode[i].Value <> '>')) then
               s := s + ' ';
             s := s + FNode[i].Value;
-            if Pos('<', FNode[i].Value) = 1 then
+            if (FNode[i].Value[1] = '<') and (FNode[i + 1].Value[1] <> '<') and (FNode[i + 1].Value[1] <> '>') then
               s := s + ' ';
             Inc(i);
             if i = FCount then Break;
@@ -250,7 +249,7 @@ end;
 // Falseを指定した場合はタグも含めたHTMLソースを返す
 function TSHParser.GetNodeText(Tag: string; AsText: boolean): string;
 var
-  s, st: string;
+  s, t, st: string;
   i, lv: integer;
 begin
   Result := '';
@@ -268,7 +267,7 @@ begin
         while FNode[i].Lebel > lv do
         begin
           s := s + FNode[i].Value;
-          if FNode[i].Token = toTag then
+          if (FNode[i].Token = toTag) and (FNode[i + 1].Token <> toEndTag) then
             s := s + ' ';
           Inc(i);
           if i = FCount then Break;
