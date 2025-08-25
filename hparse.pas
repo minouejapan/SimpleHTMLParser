@@ -62,9 +62,9 @@ begin
   FBufSize := Length(S);
 {$ELSE}
   str := AnsiString(S);
-  FBufSize := ByteLength(str); // Delphiはマルチバイト文字も1文字とカウントするためByteLengthを使用する
+  FBufSize := Length(str); // Delphiはマルチバイト文字も1文字とカウントするためByteLengthを使用する
 {$ENDIF}
-  GetMem(FBuffer, FBufSize * 2);
+  GetMem(FBuffer, FBufSize + 2);
   if FBufSize > 0 then
     Move(str[1], FBuffer[0], FBufSize);
   FBuffer[FBufSize] := #0;
