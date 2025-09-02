@@ -18,14 +18,14 @@ program na6dl2;
 uses
   Classes, SysUtils, RegExpr,
 {$IFDEF LINUX}
-  UniHtml in '..\unihtml.pas',
+  UniHtml,
 {$ELSE}
-  WinHTML in '..\winhtml.pas',
+  WinHTML,
 {$ENDIF}
   HParse in '..\hparse.pas',
   SHParser in '..\shparser.pas'
 {$IFNDEF FPC}
-  , LazUTF8Wrap in '..\lazutf8wrap.pas'
+  , LazUTF8Wrap
 {$ELSE}
   , LazUTF8
 {$ENDIF}
