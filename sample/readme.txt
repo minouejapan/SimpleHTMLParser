@@ -1,0 +1,18 @@
+SHParserサンプルプロジェクト
+
+なろう系作品ダウンローダーna6dl2
+
+  Lazarusの場合はプロjヘクト→プロジェクトを開くでna6dl2.lpiを開いてください
+  尚、Lazarus用のプロジェクトはLinux環境にも対応しています。Windows版Lazarus
+　でLinux 64bit実行ファイルをクロスコンパイルするか、Linux版Lazarusで直接実行
+　ファイルを作成することで実行ファイルを作成することが出来ます。尚、Windowsで
+　クロスコンパイルした場合は、作成した実行ファイルをLinux上に移動したら
+　chmod +x na6dl2で実行権限を付与して下さい
+
+  Delphiの場合はファイル→プロジェクトを開くでna6dl2.dprojを開いてください
+
+  尚、プログラムソース本体はna6dl2.dprでLazarus/Delphi共用となっています
+
+
+サブフォルダLazarus/Delphi内のプロジェクトはSHParserを使用したなろう系作品
+をダウンロードするWIndowsアプリケーションサンプルです

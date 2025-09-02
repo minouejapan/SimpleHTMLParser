@@ -2,6 +2,7 @@
   HParserを使用した簡易HTMLパーサー(Delphi/Lazarus共用)
   TRegExpr:https://github.com/andgineer/TRegExpr
 
+  vcr1.3 2025/09/02 Linux環境も考慮してCRとLFの処理を分離した
   ver1.2 2025/08/25 GetNodeTextでの各ノード値からHTMLソースを再構築する際の半角スペースの処理を修正した
   ver1.1 2025/08/23 HTMLエンコードされた文字のデコード処理を追加した
                     GetText処理の前後に呼呼び出せるコールバック関数を追加したファイル名フィルターを追加した
@@ -19,6 +20,8 @@ uses
   Classes, SysUtils, HParse, RegExpr
 {$IFDEF FPC}
   ,LazUTF8
+{$ELSE}
+  ,LazUTF8Wrap
 {$ENDIF}
   ;
 
@@ -133,11 +136,12 @@ var
   s: string;
 begin
   FHTMLSrc := HTML;
-  // HTML内の改行を削除する
-  s := ReplaceRegExpr(#13#10, HTML, '');
+  // HTML内の改行を削除する(Linux環境を考慮してCRとLFの処理を分離)
+  s := UTF8StringReplace(HTML, #13, '', [rfReplaceAll]);
+  s := UTF8StringReplace(HTML, #10, '', [rfReplaceAll]);
   FParser := THParser.Create(s);
   FCount := 0;
-  // 喉データを構成する
+  // ノードデータを構成する
   InitNode;
 end;
 
@@ -155,7 +159,6 @@ procedure TSHParser.InitNode;
 var
   d: integer;
   cf: boolean;
-  i, j: integer;
 begin
   d := 0;
   while FParser.Token <> toEof do
@@ -249,7 +252,7 @@ end;
 // Falseを指定した場合はタグも含めたHTMLソースを返す
 function TSHParser.GetNodeText(Tag: string; AsText: boolean): string;
 var
-  s, t, st: string;
+  s, st: string;
   i, lv: integer;
 begin
   Result := '';
@@ -320,7 +323,6 @@ begin
   s := HTMLSrc;
   if Assigned(OnBeforeGetText) then // 前処理
     s := OnBeforeGetText(s);
-
   s := ReplaceRegExpr('<br.*?>', s, #13#10);      // <br />を改行コードに置換
   s := ReplaceRegExpr('<.*?>', s, '');            // その他のHTMLタグを除去
   s := StringReplace(s, ' ', '', [rfReplaceAll]); // 半角スペースを除去
