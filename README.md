@@ -38,6 +38,9 @@ end;
 ```
 
 詳細はsampleフォルダ内のサンプルプロジェクトを参照してください。<br>
+尚、sampleプロジェクトなろう系作品ダウンローダーna6dl2の実行ファイルはReleasesに置いてあります。<br>
++ na6dl2.zip：Windows版32bitコンソールアプリケーション
++ na6dl2.tar.bz2：Linux用64bitコンソールアプリケーション
 <br>
 
 
