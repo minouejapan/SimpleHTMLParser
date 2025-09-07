@@ -29,7 +29,7 @@ begin
   Parser := TSHParser.Create(HTMLSource);
   try
     Parser.OnBeforeGetText := @MyDecorder;  // SHParserのテキスト変換前に自前の変換処理を登録する
-    res := Parser.GetNodeText('div', 'class', 'p-novel__summary');
+    res := Parser.Find('div', 'class', 'p-novel__summary');
     Writeln(res);
   finally
     Parser.Free;
