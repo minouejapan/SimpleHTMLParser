@@ -2,6 +2,8 @@
   HParserを使用した簡易HTMLパーサー(Delphi/Lazarus共用)
   TRegExpr:https://github.com/andgineer/TRegExpr
 
+  ver1.4 2025/09/07 検索メソッド名をFind, FindRegexに変更した(旧来のメソッドも使用可)
+                    またマッチした全てのコンテンツを返すFindAll, FindRegexAllを追加した
   vcr1.3 2025/09/02 Linux環境も考慮してCRとLFの処理を分離した
   ver1.2 2025/08/25 GetNodeTextでの各ノード値からHTMLソースを再構築する際の半角スペースの処理を修正した
   ver1.1 2025/08/23 HTMLエンコードされた文字のデコード処理を追加した
@@ -502,4 +504,5 @@ begin
 end;
 
 end.
+
 
