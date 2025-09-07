@@ -4,6 +4,7 @@
   Original Copyright by 本田勝彦
   Modified by INOUE, masahiro
 
+  2025/09/06 メモリリークを修正した
   2025/08/24 タグ終端"/>"の処理を追加した
   2025/08/22 Lazarusでも使用出来るように小修整
 *)
@@ -57,17 +58,18 @@ constructor THParser.Create(const S: String);
 var
   str: AnsiString;
 begin
+  if Length(S) = 0 then
+    Exit;
 {$IFDEF FPC}
   str := S;
   FBufSize := Length(S);
 {$ELSE}
   str := AnsiString(S);
-  FBufSize := Length(str); // Delphiはマルチバイト文字も1文字とカウントするためByteLengthを使用する
+  FBufSize := Length(str) + 2; // Delphiはマルチバイト文字も1文字とカウントするためByteLengthを使用する
 {$ENDIF}
-  GetMem(FBuffer, FBufSize + 2);
-  if FBufSize > 0 then
-    Move(str[1], FBuffer[0], FBufSize);
-  FBuffer[FBufSize] := #0;
+  GetMem(FBuffer, FBufSize);
+  FillByte(FBuffer^, FBufSize, 0);
+  Move(str[1], FBuffer[0], FBufSize - 2);
   FSourcePtr := FBuffer;
   FTokenPtr := FBuffer;
   NextToken;
@@ -75,8 +77,8 @@ end;
 
 destructor THParser.Destroy;
 begin
-  if FBuffer <> nil then
-    FreeMem(FBuffer, FBufSize + 1);
+  if Assigned(FBuffer) then
+    FreeMem(FBuffer, FBufSize);
 end;
 
 procedure THParser.SkipBlanks;
