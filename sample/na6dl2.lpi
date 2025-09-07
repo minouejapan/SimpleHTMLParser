@@ -13,6 +13,7 @@
       <Title Value="na6dl"/>
       <UseAppBundle Value="False"/>
       <ResourceType Value="res"/>
+      <Icon Value="0"/>
     </General>
     <BuildModes>
       <Item Name="Debug" Default="True"/>
@@ -129,26 +130,6 @@
       <Unit>
         <Filename Value="na6dl2.dpr"/>
         <IsPartOfProject Value="True"/>
-      </Unit>
-      <Unit>
-        <Filename Value="..\winhtml.pas"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="WinHTML"/>
-      </Unit>
-      <Unit>
-        <Filename Value="..\hparse.pas"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="HParse"/>
-      </Unit>
-      <Unit>
-        <Filename Value="..\shparser.pas"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="SHParser"/>
-      </Unit>
-      <Unit>
-        <Filename Value="..\unihtml.pas"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="UniHtml"/>
       </Unit>
     </Units>
   </ProjectOptions>
