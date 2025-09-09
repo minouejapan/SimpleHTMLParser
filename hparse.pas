@@ -4,9 +4,11 @@
   Original Copyright by 本田勝彦
   Modified by INOUE, masahiro
 
-  2025/09/06 メモリリークを修正した
-  2025/08/24 タグ終端"/>"の処理を追加した
-  2025/08/22 Lazarusでも使用出来るように小修整
+  2025/09/09  <brの処理がbodyタグ識別を妨げていた不具合を修正した
+              <hr>タグの処理を追加した
+  2025/09/06  メモリリークを修正した
+  2025/08/24  タグ終端"/>"の処理を追加した
+  2025/08/22  Lazarusでも使用出来るように小修整
 *)
 unit HParse;
 
@@ -62,7 +64,7 @@ begin
     Exit;
 {$IFDEF FPC}
   str := S;
-  FBufSize := Length(S);
+  FBufSize := Length(S) + 2;
 {$ELSE}
   str := AnsiString(S);
   FBufSize := Length(str) + 2; // Delphiはマルチバイト文字も1文字とカウントするためByteLengthを使用する
@@ -146,17 +148,25 @@ begin
                 while not (P^ in [#0, '>']) do Inc(P);
                 if P^ = '>' then Inc(P);
               end;
-            'B', 'b': // <br.*?>の解析結果がおかしくなるため分解せずに一括りにする
+            'A'..'Z', 'a', 'c'..'z':
               begin
-                Result := toCommentTag; // コメントと同じ扱いで一括りにする
-                while not (P^ in [#0, '>']) do Inc(P);
-                if P^ = '>' then Inc(P);
-              end;
-            'A', 'C'..'Z', 'a', 'c'..'z':
-              begin
-                Result := toTag;
-                FInTag := True;                  // <hの場合1～6が分離されないよう'1'..'6'を追加
-                while P^ in ['A'..'Z', 'a'..'z', '1'..'6'] do Inc(P);
+                // <br.*?>の解析結果がおかしくなるため分解せずに一括りにする
+                if ((P^ = 'b') or (P^ = 'B')) and (((P+1)^ = 'r') or ((P+1)^ = 'R')) then
+                begin
+                  Result := toCommentTag; // コメントと同じ扱いで一括りにする
+                  while not (P^ in [#0, '>']) do Inc(P);
+                  if P^ = '>' then Inc(P);
+                // <hr>の解析結果がおかしくなるため分解せずに一括りにする
+                end else if ((P^ = 'h') or (P^ = 'H')) and (((P+1)^ = 'r') or ((P+1)^ = 'R')) then
+                begin
+                  Result := toCommentTag; // コメントと同じ扱いで一括りにする
+                  while not (P^ in [#0, '>']) do Inc(P);
+                  if P^ = '>' then Inc(P);
+                end else begin
+                  Result := toTag;
+                  FInTag := True;                  // <hの場合1～6が分離されないよう'1'..'6'を追加
+                  while P^ in ['A'..'Z', 'a'..'z', '1'..'6'] do Inc(P);
+                end;
               end;
             else
               Result := '<';

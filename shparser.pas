@@ -2,6 +2,7 @@
   HParserを使用した簡易HTMLパーサー(Delphi/Lazarus共用)
   TRegExpr:https://github.com/andgineer/TRegExpr
 
+  ver1.5 2025/09/08 属性="名前"検索を正規表現検索に変更した
   ver1.4 2025/09/07 検索メソッド名をFind, FindRegexに変更した(旧来のメソッドも使用可)
                     またマッチした全てのコンテンツを返すFindAll, FindRegexAllを追加した
   vcr1.3 2025/09/02 Linux環境も考慮してCRとLFの処理を分離した
@@ -55,7 +56,7 @@ type
   public
     OnBeforeGetText: TOnGetText;
     OnAfterGetText: TOnGetText;
-    constructor Create(const HTML: String);
+    constructor Create(HTML: String);
     destructor Destroy; override;
     // 旧検索処理
     function GetNodeText(Tag, Attrib, AName: string; AsText: boolean = True): string; overload;
@@ -71,6 +72,7 @@ type
 
     function GetText(HTMLSrc: string): string;
     function GetMaskedContent(SrcStr, PattarnL, PattarnR: string): string;
+    function CompareRegex(InputStr, ARegExpr: string): boolean;
     function PathFilter(PathName: string; PathLength: integer = 24): string;
     property Node: TNodeArray read FNode;
     property NodeCount: integer read GetNodeCount;
@@ -151,7 +153,7 @@ begin
   Result := tmp;
 end;
 
-constructor TSHParser.Create(const HTML: string);
+constructor TSHParser.Create(HTML: string);
 var
   s: string;
 begin
@@ -203,6 +205,12 @@ begin
   end;
 end;
 
+// 正規表現でStrLとSrtRがマッチするか調べる
+function TSHParser.CompareRegex(InputStr, ARegExpr: string): boolean;
+begin
+  Result := ExecRegExpr(ARegExpr, InputStr);
+end;
+
 // Tag Attrib="AName"を検索してその中に含まれるコンテンツを返す
 // AsTextを省略もしくはTrueを指定した場合はコンテンツ内のテキストだけを
 // Falseを指定した場合はタグも含めたHTMLソースを返す
@@ -222,7 +230,7 @@ begin
   i := 0;
   atts := Attrib + '="' + AName + '"';
   st := '<' + Tag;
-  while i < FCount do
+  while i < (FCount - 1) do
   begin
     if FNode[i].Token = toTag then
     begin
@@ -243,7 +251,8 @@ begin
         end;
         s := s + FNode[i].Value;
         Inc(i);
-        if Pos(atts, s) > 0 then  // 検索パターンがマッチした
+        //if Pos(atts, s) > 0 then  // 検索パターンがマッチした
+        if Compareregex(s, atts) then  // 検索パターンがマッチした
         begin
           s := '';
           // マッチしたノードレベル以下の値がそのノードにぶら下がるコンテンツとなるため
@@ -256,7 +265,8 @@ begin
             if (FNode[i].Value[1] = '<') and (FNode[i + 1].Value[1] <> '<') and (FNode[i + 1].Value[1] <> '>') then
               s := s + ' ';
             Inc(i);
-            if i = FCount then Break;
+            if i = (FCount - 1) then
+              Break;
           end;
           // Trueであればテキストだけを返す
           if AsText then
@@ -504,5 +514,4 @@ begin
 end;
 
 end.
-
 
