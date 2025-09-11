@@ -4,6 +4,7 @@
   Original Copyright by 本田勝彦
   Modified by INOUE, masahiro
 
+  2025/09/11  終点タグがない全てのタグを処理するようにした
   2025/09/09  <brの処理がbodyタグ識別を妨げていた不具合を修正した
               <hr>タグの処理を追加した
   2025/09/06  メモリリークを修正した
@@ -62,11 +63,11 @@ var
 begin
   if Length(S) = 0 then
     Exit;
+  str := StringReplace(S, #13#10, '', [rfReplaceAll]);
 {$IFDEF FPC}
-  str := S;
-  FBufSize := Length(S) + 2;
+  FBufSize := Length(str) + 2;
 {$ELSE}
-  str := AnsiString(S);
+  str := AnsiString(ss);
   FBufSize := Length(str) + 2; // Delphiはマルチバイト文字も1文字とカウントするためByteLengthを使用する
 {$ENDIF}
   GetMem(FBuffer, FBufSize);
@@ -110,6 +111,8 @@ end;
 function THParser.NextToken: AnsiChar;
 var
   P: PAnsiChar;
+  tag1, tag2:AnsiString;
+  ps:integer;
 begin
   SkipBlanks;
   P := FSourcePtr;
@@ -148,20 +151,26 @@ begin
                 while not (P^ in [#0, '>']) do Inc(P);
                 if P^ = '>' then Inc(P);
               end;
-            'A'..'Z', 'a', 'c'..'z':
+            'A'..'Z', 'a'..'z':
               begin
-                // <br.*?>の解析結果がおかしくなるため分解せずに一括りにする
-                if ((P^ = 'b') or (P^ = 'B')) and (((P+1)^ = 'r') or ((P+1)^ = 'R')) then
+                // 終了タグがないタグとscriptタグの場合はコメントと同じ扱いで一括りにする
+                tag1 := LowerCase(P^ + (P+1)^);
+                tag2 := LowerCase(P^ + (P+1)^ + (P+2)^);
+                // 誤判定しないよう先頭からマッチしているかチェックする
+                ps := Pos(tag2, 'script img    meta   input  embed  area   base   col    keygen link   param  source') mod 7;
+                if (tag1 = 'br') or (tag1 = 'hr') or (ps = 1) then
                 begin
-                  Result := toCommentTag; // コメントと同じ扱いで一括りにする
-                  while not (P^ in [#0, '>']) do Inc(P);
-                  if P^ = '>' then Inc(P);
-                // <hr>の解析結果がおかしくなるため分解せずに一括りにする
-                end else if ((P^ = 'h') or (P^ = 'H')) and (((P+1)^ = 'r') or ((P+1)^ = 'R')) then
-                begin
-                  Result := toCommentTag; // コメントと同じ扱いで一括りにする
-                  while not (P^ in [#0, '>']) do Inc(P);
-                  if P^ = '>' then Inc(P);
+                  Result := toCommentTag;
+                  if tag2 = 'scr' then // <script>.....</script>を一纏めにする
+                  begin
+                    while ((P^ <> #0) and (LowerCase(P^ + (P+1)^ + (P+2)^ + (P+3)^) <> '</sc')) do Inc(P);
+                    Inc(P); Inc(P); Inc(P);
+                    while not (P^ in [#0, '>']) do Inc(P);
+                    if P^ = '>' then Inc(P);
+                  end else begin
+                    while not (P^ in [#0, '>']) do Inc(P);
+                    if P^ = '>' then Inc(P);
+                  end;
                 end else begin
                   Result := toTag;
                   FInTag := True;                  // <hの場合1～6が分離されないよう'1'..'6'を追加
