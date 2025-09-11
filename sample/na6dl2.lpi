@@ -36,6 +36,7 @@
             <Optimizations>
               <OptimizationLevel Value="3"/>
             </Optimizations>
+            <SmallerCode Value="True"/>
           </CodeGeneration>
           <Linking>
             <Debugging>
@@ -122,6 +123,9 @@
       <FormatVersion Value="2"/>
     </RunParams>
     <RequiredPackages>
+      <Item>
+        <PackageName Value="my_lib"/>
+      </Item>
       <Item>
         <PackageName Value="LazUtils"/>
       </Item>

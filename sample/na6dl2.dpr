@@ -19,20 +19,19 @@ program na6dl2;
 {$ENDIF}
 
 uses
-  Classes, SysUtils, RegExpr, Windows,
-  {$IFDEF LINUX}
-    UniHtml, // FpHTTPClient
-  {$ELSE}
-    WinHTML, // WinINet
+  Classes, SysUtils, RegExpr,
+  {$IFDEF WINDOWS}
+    Windows,
   {$ENDIF}
-    HParse,
-    SHParser
+  UniHtml, // GetHTML
+  HParse,
+  SHParser
   {$IFNDEF FPC}
     ,LazUTF8Wrap
   {$ELSE}
     ,LazUTF8
   {$ENDIF}
-    ;
+  ;
 
 {$R *.res}
 {$R na6dl2ver.res}
@@ -55,8 +54,10 @@ const
 {$ELSE}
   CRLF = #13#10;
 {$ENDIF}
+{$IFDEF WINDOWS}
   // ユーザメッセージID
   WM_DLINFO  = WM_USER + 30;
+{$ENDIF}
 
 var
   TextBuff, LogFile: TStringList;
@@ -220,10 +221,10 @@ var
   Parser: TSHParser;
   r: TRegExpr;
   isShort: boolean;
-{$IFDEF WINDOWS}
 {$IFDEF FPC}
   ws: WideString;
 {$ENDIF}
+{$IFDEF WINDOWS}
   CDS: TCopyDataStruct;
   conhdl: THandle;
 {$ENDIF}
@@ -284,8 +285,8 @@ begin
       Cds.lpData := Pointer(sendstr);
     {$ENDIF}
       SendMessage(hWnd, WM_COPYDATA, conhdl, LPARAM(Addr(Cds)));
-{$ENDIF}
     end;
+{$ENDIF}
   finally
     Parser.Free;
   end;
