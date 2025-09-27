@@ -2,6 +2,7 @@
   HParserを使用した簡易HTMLパーサー(Delphi/Lazarus共用)
   TRegExpr:https://github.com/andgineer/TRegExpr
 
+  ver1.6 2025/09/27 Createの#13#10削除で#13を削除出来ていなかった不具合を修正した
   ver1.5 2025/09/08 属性="名前"検索を正規表現検索に変更した
   ver1.4 2025/09/07 検索メソッド名をFind, FindRegexに変更した(旧来のメソッドも使用可)
                     またマッチした全てのコンテンツを返すFindAll, FindRegexAllを追加した
@@ -47,6 +48,7 @@ type
     FHTMLSrc: string;
     FFoundList: TFoundList;
     FIsAll: boolean;
+    FNodeComp: integer;
     procedure InitNode;
     function GetNodeCount: integer;
     // 検索処理本体
@@ -76,6 +78,7 @@ type
     function PathFilter(PathName: string; PathLength: integer = 24): string;
     property Node: TNodeArray read FNode;
     property NodeCount: integer read GetNodeCount;
+    property NodeComp: integer read FNodeComp;
   end;
 
 
@@ -157,11 +160,11 @@ constructor TSHParser.Create(HTML: string);
 var
   s: string;
 begin
-  FHTMLSrc := HTML;
   // HTML内の改行を削除する(Linux環境を考慮してCRとLFの処理を分離)
   s := UTF8StringReplace(HTML, #13, '', [rfReplaceAll]);
-  s := UTF8StringReplace(HTML, #10, '', [rfReplaceAll]);
+  s := UTF8StringReplace(s, #10, '', [rfReplaceAll]);
   FParser := THParser.Create(s);
+  FHTMLSrc := s;
   FCount := 0;
   FFoundList := TFoundList.Create;
   // ノードデータを構成する
@@ -203,6 +206,7 @@ begin
     if cf then Inc(d);
     FParser.NextToken;
   end;
+  FNodeComp := d;
 end;
 
 // 正規表現でStrLとSrtRがマッチするか調べる
@@ -251,7 +255,6 @@ begin
         end;
         s := s + FNode[i].Value;
         Inc(i);
-        //if Pos(atts, s) > 0 then  // 検索パターンがマッチした
         if Compareregex(s, atts) then  // 検索パターンがマッチした
         begin
           s := '';
@@ -338,7 +341,7 @@ begin
   FIsAll := IsAll;
   FFoundList.Clear;
 
-  ptn := PatternL + '.*?' + PatternR;
+  ptn := PatternL + '[\s\S]*?' + PatternR;
   r := TRegExpr.Create;
   try
     r.Expression  := ptn;
@@ -460,9 +463,12 @@ begin
 
   if FIsAll then
     s := ReplaceRegExpr('<br.*?>', s, ' ')        // 結果をリストに保存する場合は<br />を改行ではなく半角スペースに置換
-  else
-    s := ReplaceRegExpr('<br.*?>', s, #13#10);    // 結果を単独で返す場合は<br />を改行コードに置換
-  s := ReplaceRegExpr('<.*?>', s, '');            // その他のHTMLタグを除去
+  else begin
+    s := ReplaceRegExpr('<br.*?>', s, #13#10);    // 結果を単独で返す場合は<br><br/><br />を改行コードに置換
+    s := ReplaceRegExpr('<br>', s, #13#10);       
+    s := ReplaceRegExpr('< br>', s, #13#10);
+  end;
+  s := ReplaceRegExpr('<[\s\S]*?>', s, '');            // その他のHTMLタグを除去
   s := StringReplace(s, ' ', '', [rfReplaceAll]); // 半角スペースを除去
   s := Restore2Realchar(s);                       // エスケープされた文字を元に戻す
 
