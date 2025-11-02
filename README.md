@@ -37,7 +37,7 @@ begin
 end;
 ```
 
-詳細はsampleフォルダ内のサンプルプロジェクトを参照してください。<br>
+詳しい使い方はnarou-downloiaderプロジェクトソースを参照してくださいhttps://github.com/minouejapan/narou-downloader。<br>
 <br>
 
 
