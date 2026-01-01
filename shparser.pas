@@ -2,14 +2,18 @@
   HParserを使用した簡易HTMLパーサー(Delphi/Lazarus共用)
   TRegExpr:https://github.com/andgineer/TRegExpr
 
+  ver1.7 2026/01/01 DelphiではUTF-8をAnsiCharで扱うとUnicode固有の文字情報が欠落するため
+                    文字列をDelphiではWideCharで、LazarusではAnsiCharで扱うように変更した
   ver1.6 2025/09/27 Createの#13#10削除で#13を削除出来ていなかった不具合を修正した
   ver1.5 2025/09/08 属性="名前"検索を正規表現検索に変更した
   ver1.4 2025/09/07 検索メソッド名をFind, FindRegexに変更した(旧来のメソッドも使用可)
                     またマッチした全てのコンテンツを返すFindAll, FindRegexAllを追加した
   vcr1.3 2025/09/02 Linux環境も考慮してCRとLFの処理を分離した
-  ver1.2 2025/08/25 GetNodeTextでの各ノード値からHTMLソースを再構築する際の半角スペースの処理を修正した
+  ver1.2 2025/08/25 GetNodeTextでの各ノード値からHTMLソースを再構築する際の半角スペースの
+                    処理を修正した
   ver1.1 2025/08/23 HTMLエンコードされた文字のデコード処理を追加した
-                    GetText処理の前後に呼呼び出せるコールバック関数を追加したファイル名フィルターを追加した
+                    GetText処理の前後に呼呼び出せるコールバック関数を追加したファイル名
+                    フィルターを追加した
   ver1.0 2025/08/22 初版
 *)
 unit SHParser;
@@ -22,7 +26,7 @@ unit SHParser;
 interface
 
 uses
-  Classes, SysUtils, HParse, RegExpr
+  Classes, SysUtils, RegExpr, HParse
 {$IFDEF FPC}
   ,LazUTF8
 {$ELSE}
@@ -32,7 +36,11 @@ uses
 
 type
   TNodeInfo = record
+{$IFDEF FPC}
     Token: AnsiChar;
+{$ELSE}
+    Token: Char;
+{$ENDIF}
     Value: string;
     Lebel: integer;
   end;
@@ -423,13 +431,13 @@ begin
 end;
 
 // Tag Attrib=ANameでードを検索してマッチした全てのコンテンツを返す
-function TSHParser.FindAll(Tag, Attrib, AName: string; AsText: boolean = True): TFoundList; overload;
+function TSHParser.FindAll(Tag, Attrib, AName: string; AsText: boolean = True): TFoundList; //overload;
 begin
   Result := FindTagwAttr(Tag, Attrib, AName, AsText, True);
 end;
 
 // Tagでードを検索してマッチした全てのコンテンツを返す
-function TSHParser.FindAll(Tag: string; AsText: boolean = True): TFoundList; overload;
+function TSHParser.FindAll(Tag: string; AsText: boolean = True): TFoundList; //overload;
 begin
   Result := FindTag(Tag, AsText, True);
 end;
@@ -447,7 +455,7 @@ begin
 end;
 
 // PattarnLとPatternRで囲われたコンテンツを正規表現検索してマッチした全てを返す
-function TSHParser.FindRegexAll(PatternL, PatternR: string; AsText: boolean = True): TFoundList; inline;
+function TSHParser.FindRegexAll(PatternL, PatternR: string; AsText: boolean = True): TFoundList; //inline;
 begin
   Result := FindRegExpr(PatternL, PatternR, AsText, True);
 end;
@@ -468,7 +476,7 @@ begin
     s := ReplaceRegExpr('<br>', s, #13#10);       
     s := ReplaceRegExpr('< br>', s, #13#10);
   end;
-  s := ReplaceRegExpr('<[\s\S]*?>', s, '');            // その他のHTMLタグを除去
+  s := ReplaceRegExpr('<[\s\S]*?>', s, '');       // その他のHTMLタグを除去
   s := StringReplace(s, ' ', '', [rfReplaceAll]); // 半角スペースを除去
   s := Restore2Realchar(s);                       // エスケープされた文字を元に戻す
 
@@ -479,13 +487,13 @@ begin
 end;
 
 // SrcStrから正規表現パターンPattarnL, PattarnR部分を除去した文字列を返す
-function TSHParser.GetMaskedContent(SrcStr, PattarnL, PattarnR: string): string; inline;
+function TSHParser.GetMaskedContent(SrcStr, PattarnL, PattarnR: string): string; //inline;
 begin
   Result := ReplaceRegExpr(PattarnR, ReplaceRegExpr(PattarnL, SrcStr, ''), '');
 end;
 
 // パースしたすべてのノード数を返す
-function TSHParser.GetNodeCount: integer; inline;
+function TSHParser.GetNodeCount: integer; //inline;
 begin
   Result := Length(FNode);
 end;
