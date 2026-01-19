@@ -4,6 +4,7 @@
   Original Copyright by 本田勝彦
   Modified by INOUE, masahiro
 
+  2026/01/20  CreateのMoveでメモリアクセス違反が出る場合があった不具合を修正した
   2026/01/01  DelphiではUTF-8をAnsiCharで扱うとUnicode固有の文字情報が欠落するため
               文字列をDelphiではWideCharで、LazarusではAnsiCharで扱うように変更した
   2025/09/11  終点タグがない全てのタグを処理するようにした
@@ -49,17 +50,10 @@ const
 type
   THParser = class(TObject)
   protected
-{$IFDEF FPC}
-    FBuffer: PAnsiChar;
-    FSourcePtr: PAnsiChar;
-    FTokenPtr: PAnsiChar;
-    FToken: AnsiChar;
-{$ELSE}
-    FBuffer: PChar;
-    FSourcePtr: PChar;
-    FTokenPtr: PChar;
-    FToken: Char;
-{$ENDIF}
+    FBuffer:    {$IFDEF FPC} PAnsiChar {$ELSE} PChar {$ENDIF};
+    FSourcePtr: {$IFDEF FPC} PAnsiChar {$ELSE} PChar {$ENDIF};
+    FTokenPtr:  {$IFDEF FPC} PAnsiChar {$ELSE} PChar {$ENDIF};
+    FToken:     {$IFDEF FPC} AnsiChar  {$ELSE} PChar {$ENDIF};
     FBufSize: Integer;
     FInTag: Boolean;
     procedure SkipBlanks; virtual;
@@ -68,13 +62,8 @@ type
     destructor Destroy; override;
     function SourcePos: Longint;
     function TokenString: String;
-{$IFDEF FPC}
-    function NextToken: AnsiChar; virtual;
-    property Token: AnsiChar read FToken;
-{$ELSE}
-    function NextToken: Char; virtual;
-    property Token: Char read FToken;
-{$ENDIF}
+    function NextToken: {$IFDEF FPC} AnsiChar {$ELSE} Char {$ENDIF}; virtual;
+    property Token:     {$IFDEF FPC} AnsiChar {$ELSE} Char {$ENDIF} read FToken;
 
   end;
 
@@ -89,10 +78,10 @@ begin
   if Length(S) = 0 then
     Exit;
   str := StringReplace(S, #13#10, '', [rfReplaceAll]);
-  FBufSize := ByteLength(str) + 2;
-  GetMem(FBuffer, FBufSize);
-  FillChar(FBuffer^, FBufSize, #0);
-  Move(str[1], FBuffer^, FBufSize - 2);
+  FBufSize := ByteLength(str);
+  GetMem(FBuffer, FBufSize + 4);
+  FillChar(FBuffer^, FBufSize + 4, #0);
+  Move(PChar(str)^, FBuffer^, FBufSize);
   FSourcePtr := FBuffer;
   FTokenPtr := FBuffer;
   NextToken;
@@ -101,7 +90,7 @@ end;
 destructor THParser.Destroy;
 begin
   if Assigned(FBuffer) then
-    FreeMem(FBuffer, FBufSize);
+    FreeMem(FBuffer, FBufSize + 4);
 end;
 
 procedure THParser.SkipBlanks;
