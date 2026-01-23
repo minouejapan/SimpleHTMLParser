@@ -4,6 +4,7 @@
   Original Copyright by 本田勝彦
   Modified by INOUE, masahiro
 
+  2026/01/22  CreateのMoveでメモリアクセス違反が出る場合があった不具合を再修正した
   2026/01/20  CreateのMoveでメモリアクセス違反が出る場合があった不具合を修正した
   2026/01/01  DelphiではUTF-8をAnsiCharで扱うとUnicode固有の文字情報が欠落するため
               文字列をDelphiではWideCharで、LazarusではAnsiCharで扱うように変更した
@@ -78,11 +79,23 @@ begin
   if Length(S) = 0 then
     Exit;
   str := StringReplace(S, #13#10, '', [rfReplaceAll]);
+{$IFDEF FPC}
+  FBufSize := Length(str);
+{$ELSE}
   FBufSize := ByteLength(str);
+{$ENDIF}
   GetMem(FBuffer, FBufSize + 4);
   FillChar(FBuffer^, FBufSize + 4, #0);
-  Move(PChar(str)^, FBuffer^, FBufSize);
-  FSourcePtr := FBuffer;
+{$IFDEF FPC}
+  StrPCopy(FBuffer, str);
+{$ELSE}
+  try
+    Move(PByte(str)^, FBuffer^, FBufSize);
+	except
+    ;
+	end;
+{$ENDIF}
+	FSourcePtr := FBuffer;
   FTokenPtr := FBuffer;
   NextToken;
 end;
