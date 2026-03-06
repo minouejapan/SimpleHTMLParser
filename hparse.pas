@@ -4,6 +4,7 @@
   Original Copyright by 本田勝彦
   Modified by INOUE, masahiro
 
+  2026/03/07  FTokenの定義間違いを修正した
   2026/01/22  CreateのMoveでメモリアクセス違反が出る場合があった不具合を再修正した
   2026/01/20  CreateのMoveでメモリアクセス違反が出る場合があった不具合を修正した
   2026/01/01  DelphiではUTF-8をAnsiCharで扱うとUnicode固有の文字情報が欠落するため
@@ -54,7 +55,7 @@ type
     FBuffer:    {$IFDEF FPC} PAnsiChar {$ELSE} PChar {$ENDIF};
     FSourcePtr: {$IFDEF FPC} PAnsiChar {$ELSE} PChar {$ENDIF};
     FTokenPtr:  {$IFDEF FPC} PAnsiChar {$ELSE} PChar {$ENDIF};
-    FToken:     {$IFDEF FPC} AnsiChar  {$ELSE} PChar {$ENDIF};
+    FToken:     {$IFDEF FPC} AnsiChar  {$ELSE} Char  {$ENDIF};
     FBufSize: Integer;
     FInTag: Boolean;
     procedure SkipBlanks; virtual;
@@ -262,4 +263,5 @@ begin
 end;
 
 end.
+
 
